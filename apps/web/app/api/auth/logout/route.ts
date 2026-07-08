@@ -1,0 +1,19 @@
+import { NextResponse } from "next/server";
+import { apiFetch } from "@/app/_lib/api/http";
+import { getSession } from "@/app/_lib/session/read";
+import { destroySession } from "@/app/_lib/session/write";
+
+export async function POST() {
+  const session = await getSession();
+
+  if (session) {
+    await apiFetch("/auth/logout", {
+      method: "POST",
+      body: { refreshToken: session.refreshToken },
+    }).catch(() => undefined);
+  }
+
+  await destroySession();
+
+  return new NextResponse(null, { status: 204 });
+}

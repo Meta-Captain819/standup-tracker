@@ -1,0 +1,21 @@
+{
+  "name": "standup-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Multi-tenant SaaS standup tracker — Express API (apps/api) + Next.js web (apps/web).",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "install:all": "npm --prefix apps/api install && pnpm --dir apps/web install",
+    "dev:api": "npm --prefix apps/api run dev",
+    "dev:web": "pnpm --dir apps/web dev",
+    "start:api": "npm --prefix apps/api run start",
+    "start:web": "pnpm --dir apps/web start",
+    "build:web": "pnpm --dir apps/web build",
+    "lint:web": "pnpm --dir apps/web lint",
+    "typecheck": "npm --prefix apps/api run typecheck && pnpm --dir apps/web exec tsc --noEmit",
+    "test:api": "npm --prefix apps/api test",
+    "test": "npm run test:api"
+  }
+}

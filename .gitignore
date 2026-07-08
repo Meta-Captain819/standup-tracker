@@ -15,7 +15,7 @@ out/
 *.tsbuildinfo
 
 # Generated Prisma client (regenerated from schema, not source)
-backend/src/generated/
+apps/api/src/generated/
 
 # Logs
 npm-debug.log*
