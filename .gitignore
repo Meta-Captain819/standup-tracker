@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Env files (never commit secrets) — .env.example is always allowed
+.env
+.env.*
+!.env.example
+
+# Next.js
+.next/
+out/
+.vercel/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Generated Prisma client (regenerated from schema, not source)
+backend/src/generated/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Coverage
+coverage/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/*
+!.vscode/extensions.json

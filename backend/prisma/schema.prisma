@@ -1,0 +1,188 @@
+// Prisma schema — Standup Tracker (Express backend).
+// Docs: https://pris.ly/d/prisma-schema
+//
+// Runtime connects to Neon's POOLED endpoint via the pg driver adapter (see src/db/prisma.ts).
+// Migrations / introspection run against Neon's DIRECT endpoint (see prisma.config.ts).
+//
+// Tenant isolation (CLAUDE §2.2/§4; database plan §"Invariants"): every team-owned row carries a
+// `teamId`, and all team-scoped reads/writes go through the tenant-scoping data-access wrapper
+// (src/data-access), which injects the caller's teamId into every query. Never call the base
+// client directly for team data.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Team roles, resolved server-side on every request (CLAUDE §5). A member never receives lead/admin data.
+enum Role {
+  OWNER_ADMIN
+  LEAD
+  MEMBER
+}
+
+/// One family of short-lived, single-use, hashed tokens covering both invitations and password resets.
+enum OnboardingTokenType {
+  INVITE
+  PASSWORD_RESET
+}
+
+/// Kind of durable in-app notification (implementation plan Phase 4/5/6): a member's local-morning
+/// reminder to post, or a lead/admin alert about a new or persistent blocker.
+enum NotificationType {
+  REMINDER
+  BLOCKER_ALERT
+}
+
+/// The tenant boundary. Created atomically with its owner-admin during signup; never deleted.
+model Team {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  users            User[]
+  standups         Standup[]
+  onboardingTokens OnboardingToken[]
+  refreshTokens    SessionRefreshToken[]
+  aiSummaries      AiSummary[]
+  notifications    Notification[]
+}
+
+/// A member of exactly one team. Removal is a soft deactivation (isActive = false), never a delete,
+/// so a removed user's past standups remain in the team's history.
+model User {
+  id           String   @id @default(cuid())
+  teamId       String
+  name         String
+  email        String   @unique
+  passwordHash String? // null until an invited member accepts and sets their password
+  role         Role
+  timezone     String? // last-known IANA zone; null until the first login refresh writes it
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+
+  team             Team                  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  standups         Standup[]
+  onboardingTokens OnboardingToken[]
+  refreshTokens    SessionRefreshToken[]
+  notifications    Notification[]
+
+  // Active roster by team.
+  @@index([teamId, isActive])
+}
+
+/// A person's daily update. "Today" belongs to the writer: the row stores the exact UTC submission
+/// instant, the writer's IANA zone, and the derived local calendar date it maps to in that zone.
+model Standup {
+  id               String    @id @default(cuid())
+  userId           String
+  teamId           String
+  yesterday        String    @db.Text
+  today            String    @db.Text
+  blockers         String    @db.Text // may be empty; the all-blank case is rejected at the Zod boundary
+  submittedAtUtc   DateTime  @db.Timestamptz(6)
+  timezone         String // writer's IANA zone name, never a fixed offset
+  localStandupDate DateTime  @db.Date // calendar date of submittedAtUtc in `timezone` — the key everything hinges on
+  editedAt         DateTime? @db.Timestamptz(6) // edited marker + timestamp; null until first edit
+
+  // A user's past updates survive their soft-deactivation, so a user is never cascade-deleted.
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  // One update per person per local day — also the idempotent-upsert key and per-user history ordering.
+  @@unique([userId, localStandupDate])
+  // Latest update per person (live board): indexed per-user latest-row lookup, never a scan-and-filter.
+  @@index([userId, submittedAtUtc(sort: Desc)])
+  // Team-and-local-date lookup: date-picker per-day alignment and the live board's team-day gather.
+  @@index([teamId, localStandupDate])
+}
+
+/// Single-use, expiring, hashed token for invitations and password resets. A DB read never reveals
+/// a usable link — only the hash is stored.
+model OnboardingToken {
+  id         String              @id @default(cuid())
+  tokenHash  String              @unique
+  type       OnboardingTokenType
+  userId     String
+  teamId     String
+  expiresAt  DateTime            @db.Timestamptz(6)
+  consumedAt DateTime?           @db.Timestamptz(6) // single-use consumption marker; null until spent
+  createdAt  DateTime            @default(now()) @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  // Supports routine cleanup of expired tokens.
+  @@index([expiresAt])
+}
+
+/// Rotating, revocable refresh token — the minimal persisted session state. Only the hash is stored;
+/// access tokens stay stateless and are never persisted. `replacedById` links a rotated token to its
+/// successor so refresh-token reuse can be detected.
+model SessionRefreshToken {
+  id           String    @id @default(cuid())
+  tokenHash    String    @unique
+  userId       String
+  teamId       String
+  expiresAt    DateTime  @db.Timestamptz(6)
+  revokedAt    DateTime? @db.Timestamptz(6) // set on explicit revocation or on rotation
+  replacedById String?   @unique // the successor issued when this token was rotated
+  createdAt    DateTime  @default(now()) @db.Timestamptz(6)
+
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team       Team                 @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  replacedBy SessionRefreshToken? @relation("TokenRotation", fields: [replacedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  replaces   SessionRefreshToken? @relation("TokenRotation")
+
+  @@index([userId])
+  // Supports routine cleanup of expired tokens.
+  @@index([expiresAt])
+}
+
+/// Phase 2 — cached, per-team-per-day AI summary. Strictly additive: the board renders every real
+/// update with this cache empty, stale, or Gemini unavailable. Regenerated only when `fingerprint`
+/// no longer matches the day's updates or a lead explicitly refreshes (CLAUDE §2.7/§8).
+model AiSummary {
+  id          String   @id @default(cuid())
+  teamId      String
+  standupDate DateTime @db.Date
+  summary     String   @db.Text
+  fingerprint String // fingerprint of the source updates that produced `summary`
+  generatedAt DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  // One cached summary per team per day — the sole access path and its own index.
+  @@unique([teamId, standupDate])
+}
+
+/// Phase 4 — durable in-app notification inbox row. This IS the "already dispatched" record: `notify`
+/// attempts a create keyed on `dedupeKey` and treats a duplicate (P2002) as an already-fired no-op, so a
+/// reminder or alert is never re-delivered as a repeat inbox row, live push, or email (Golden Rule 9). The
+/// row survives regardless of whether the live SSE push or the queued email side effect succeeds.
+model Notification {
+  id        String           @id @default(cuid())
+  teamId    String
+  userId    String
+  type      NotificationType
+  title     String
+  body      String           @db.Text
+  dedupeKey String
+  readAt    DateTime?        @db.Timestamptz(6)
+  createdAt DateTime         @default(now()) @db.Timestamptz(6)
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Idempotency: `notify` relies on this unique constraint to detect an already-dispatched notification.
+  @@unique([teamId, dedupeKey])
+  // The recipient's inbox, newest first.
+  @@index([userId, createdAt(sort: Desc)])
+}

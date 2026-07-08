@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand — forest green. 500 = default actionable, 600 = hover/active/pressed. */
+  --color-brand-50: #f4f8f5;
+  --color-brand-100: #e3efe8;
+  --color-brand-200: #c3decd;
+  --color-brand-300: #9bc7aa;
+  --color-brand-400: #6da983;
+  --color-brand-500: #2f6b4f;
+  --color-brand-600: #24543e;
+  --color-brand-700: #1b3f2f;
+  --color-brand-800: #142f23;
+  --color-brand-900: #0f2319;
+
+  /* Neutrals — warm-gray, harmonizes with forest green (not cold blue-gray). */
+  --color-neutral-0: #ffffff;
+  --color-neutral-25: #f7f8f7;
+  --color-neutral-100: #eef0ef;
+  --color-neutral-200: #e1e4e2;
+  --color-neutral-300: #c7ccc9;
+  --color-neutral-400: #9ca39d;
+  --color-neutral-500: #717870;
+  --color-neutral-600: #545b54;
+  --color-neutral-700: #3c423c;
+  --color-neutral-800: #262a26;
+  --color-neutral-900: #16181a;
+
+  /* Blocker / alert accent — reserved. Never used decoratively. */
+  --color-blocker-50: #fdf1ec;
+  --color-blocker-100: #fbe0d4;
+  --color-blocker-300: #ee9c6c;
+  --color-blocker-500: #c1470f;
+  --color-blocker-600: #9c3a0d;
+  --color-blocker-700: #7a2e0a;
+
+  /* Edited marker — dedicated muted-indigo family, distinct from brand + blocker. */
+  --color-edited-50: #efeffa;
+  --color-edited-300: #a9aae0;
+  --color-edited-600: #55588f;
+
+  /* Semantic aliases — the design-role table from the frontend plan. */
+  --color-calm-base: var(--color-neutral-25);
+  --color-surface: var(--color-neutral-0);
+  --color-blocker-accent: var(--color-blocker-500);
+  --color-blocker-accent-bg: var(--color-blocker-50);
+  --color-no-update-muted: var(--color-neutral-400);
+  --color-no-update-muted-bg: var(--color-neutral-100);
+  --color-edited-subtle: var(--color-edited-600);
+  --color-edited-subtle-bg: var(--color-edited-50);
+  --color-on-track-neutral: var(--color-neutral-600);
+  --color-on-track-neutral-bg: var(--color-neutral-100);
+
+  /* Typography — one font, loaded via next/font/google in app/layout.tsx. */
+  --font-sans: var(--font-plus-jakarta-sans), ui-sans-serif, system-ui, sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+
+  /* Radius — rounded-2xl card language. */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-pill: 999px;
+
+  /* Shadow — soft, low-contrast card lift. */
+  --shadow-card: 0 1px 2px rgb(16 24 16 / 0.04), 0 8px 24px rgb(16 24 16 / 0.06);
+  --shadow-card-hover: 0 2px 4px rgb(16 24 16 / 0.06), 0 12px 32px rgb(16 24 16 / 0.1);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-neutral-200);
+  }
+
+  body {
+    background: var(--color-calm-base);
+    color: var(--color-neutral-800);
+    font-family: var(--font-sans);
+  }
+}
