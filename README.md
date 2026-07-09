@@ -3,6 +3,7 @@
 A multi-tenant SaaS for async daily standups. Teams post a daily update (yesterday / today / blockers), leads get a live board with AI summaries and blocker alerts, and members get local-morning reminders to post.
 
 Monorepo: an Express + Prisma API (`apps/api`) and a Next.js web app (`apps/web`).
+NOTE: Backend is deployed on render free service so the first request might take ~1min to respond.
 
 ## Features
 
