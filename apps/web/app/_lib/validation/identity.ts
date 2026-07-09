@@ -23,12 +23,6 @@ export const loginSchema = z.object({
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
-export const refreshSchema = z.object({ refreshToken: opaqueToken });
-export type RefreshInput = z.infer<typeof refreshSchema>;
-
-export const logoutSchema = z.object({ refreshToken: opaqueToken });
-export type LogoutInput = z.infer<typeof logoutSchema>;
-
 export const acceptInviteSchema = z.object({ token: opaqueToken, password });
 export type AcceptInviteInput = z.infer<typeof acceptInviteSchema>;
 

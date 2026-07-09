@@ -2,7 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { encryptSession, type SessionPayload } from "@/app/_lib/session/crypto";
 import { SESSION_COOKIE_NAME, SESSION_MAX_AGE_SECONDS } from "@/app/_lib/session/constants";
-import type { SessionResult } from "@/app/_lib/types/user";
+import type { SessionResult } from "@/app/_lib/validation/responses";
 
 /** Access tokens are 15-minute JWTs (backend/src/auth/tokens.ts) — captured as an absolute expiry. */
 const ACCESS_TOKEN_TTL_SECONDS = 15 * 60;
@@ -17,7 +17,7 @@ async function setSessionCookie(payload: SessionPayload): Promise<void> {
       path: "/",
       maxAge: SESSION_MAX_AGE_SECONDS,
     });
-  } catch (error) {
+  } catch {
     // Next.js throws an error if trying to modify cookies in a Server Component.
     // We swallow it here so the refresh request can still succeed for the current render.
     console.warn("Failed to update session cookie (likely called from a Server Component).");
@@ -53,7 +53,7 @@ export async function updateSessionTokens(
 export async function destroySession(): Promise<void> {
   try {
     (await cookies()).delete(SESSION_COOKIE_NAME);
-  } catch (error) {
+  } catch {
     // Next.js throws an error if trying to modify cookies in a Server Component.
     console.warn("Failed to delete session cookie (likely called from a Server Component).");
   }

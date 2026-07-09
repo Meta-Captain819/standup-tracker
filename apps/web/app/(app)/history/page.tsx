@@ -7,6 +7,7 @@ import { authorizedApiFetch } from "@/app/_lib/api/http";
 import { requireSession } from "@/app/_lib/session/read";
 import { dateBoardSchema, historyPageSchema } from "@/app/_lib/validation/responses";
 import { StandupCard, TeamUpdateCard } from "@/app/(app)/_components/StandupUi";
+import { AiSummarySlot } from "@/app/(app)/_components/AiSummarySlot";
 
 function dateString(daysAgo = 1) {
   const date = new Date();
@@ -60,15 +61,16 @@ export default async function HistoryPage({
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card padding="sm">
         <form className="flex flex-col gap-3 sm:flex-row sm:items-end" action="/history">
           <label className="flex flex-1 flex-col gap-1.5 text-sm font-medium text-neutral-700">
             Team date
-            <TextField type="text" name="date" defaultValue={selectedDate} pattern="\d{4}-\d{2}-\d{2}" />
+            <TextField type="date" name="date" defaultValue={selectedDate} max={dateString(0)} />
           </label>
           <Button type="submit">Show date</Button>
         </form>
       </Card>
+      <AiSummarySlot standupDate={selectedDate} />
       {board.cards.length === 0 ? (
         <EmptyState title="No team members yet" description="There is no roster to show for this date." />
       ) : (

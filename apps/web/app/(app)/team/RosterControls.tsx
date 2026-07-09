@@ -10,20 +10,9 @@ import { InlineError } from "@/app/_components/InlineError";
 import { NameLabel } from "@/app/_components/NameLabel";
 import { TextField } from "@/app/_components/TextField";
 import { useToast } from "@/app/_components/ToastProvider";
+import { requestJson } from "@/app/_lib/api/client";
 import type { RosterMember } from "@/app/_lib/validation/responses";
 import { addMemberSchema, setRoleSchema } from "@/app/_lib/validation/teams";
-
-async function requestJson<T>(path: string, init: RequestInit): Promise<T> {
-  const response = await fetch(path, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...(init.headers ?? {}) },
-  });
-  if (!response.ok) {
-    const payload = await response.json().catch(() => null);
-    throw new Error(payload?.error?.message ?? "The roster change failed.");
-  }
-  return response.status === 204 ? (undefined as T) : response.json();
-}
 
 export function RosterControls({ initialMembers }: { initialMembers: RosterMember[] }) {
   const [members, setMembers] = useState(initialMembers);

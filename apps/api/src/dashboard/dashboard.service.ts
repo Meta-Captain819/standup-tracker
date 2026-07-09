@@ -91,27 +91,29 @@ export async function getLiveBoard(auth: AuthContext): Promise<LiveBoard> {
 
   const latestByUser = new Map(latestRows.map((row) => [row.userId, row]));
 
-  const cards = roster.map((member): LiveBoardCard => {
-    const localDate =
-      member.timezone !== null && isSupportedTimezone(member.timezone)
-        ? currentLocalDate(member.timezone)
-        : null;
-    const row = latestByUser.get(member.id);
-    const latest = row ? toBoardStandup(row) : null;
-    const hasPostedToday =
-      latest !== null &&
-      localDate !== null &&
-      latest.localStandupDate.getTime() === localDate.getTime();
-    return {
-      userId: member.id,
-      name: member.name,
-      role: member.role,
-      status: member.status,
-      currentLocalDate: localDate,
-      latest,
-      hasPostedToday,
-    };
-  });
+  const cards = roster
+    .filter((member) => member.role !== "OWNER_ADMIN")
+    .map((member): LiveBoardCard => {
+      const localDate =
+        member.timezone !== null && isSupportedTimezone(member.timezone)
+          ? currentLocalDate(member.timezone)
+          : null;
+      const row = latestByUser.get(member.id);
+      const latest = row ? toBoardStandup(row) : null;
+      const hasPostedToday =
+        latest !== null &&
+        localDate !== null &&
+        latest.localStandupDate.getTime() === localDate.getTime();
+      return {
+        userId: member.id,
+        name: member.name,
+        role: member.role,
+        status: member.status,
+        currentLocalDate: localDate,
+        latest,
+        hasPostedToday,
+      };
+    });
 
   return { view: "live", cards };
 }
@@ -147,18 +149,20 @@ export async function getDateBoard(auth: AuthContext, date: Date): Promise<DateB
 
   const byUser = new Map(dayStandups.map((standup) => [standup.user.id, standup]));
 
-  const cards = roster.map((member): DateBoardCard => {
-    const row = byUser.get(member.id);
-    const standup = row ? toBoardStandup(row) : null;
-    return {
-      userId: member.id,
-      name: member.name,
-      role: member.role,
-      status: member.status,
-      standup,
-      hasUpdate: standup !== null,
-    };
-  });
+  const cards = roster
+    .filter((member) => member.role !== "OWNER_ADMIN")
+    .map((member): DateBoardCard => {
+      const row = byUser.get(member.id);
+      const standup = row ? toBoardStandup(row) : null;
+      return {
+        userId: member.id,
+        name: member.name,
+        role: member.role,
+        status: member.status,
+        standup,
+        hasUpdate: standup !== null,
+      };
+    });
 
   return { view: "date", date, cards };
 }

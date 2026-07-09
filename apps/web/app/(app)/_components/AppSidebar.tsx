@@ -22,12 +22,20 @@ export function AppSidebar({ name, role }: AppSidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="flex flex-col w-full md:w-60 shrink-0 md:justify-between bg-neutral-900 px-4 py-4 md:py-6">
-      <div className="flex flex-col gap-4 md:gap-6">
-        <div className="flex items-center justify-between md:block">
-          <span className="px-2 text-base font-semibold text-white">Standup Tracker</span>
+    <aside className="flex flex-col w-full md:w-64 shrink-0 md:justify-between bg-neutral-900 px-4 py-4 md:py-6">
+      <div className="flex flex-col gap-4 md:gap-8">
+        <div className="flex items-center justify-between md:justify-start gap-2">
+          <span className="flex items-center gap-2 px-1">
+            <span
+              aria-hidden="true"
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-500 text-sm font-bold text-white"
+            >
+              S
+            </span>
+            <span className="text-base font-semibold text-white">Standup Tracker</span>
+          </span>
           <div className="md:hidden">
-            <NameLabel name={name} role={role} tone="onDark" />
+            <NameLabel name={name} role={role} tone="onDark" compact />
           </div>
         </div>
         <nav className="flex flex-row md:flex-col gap-2 md:gap-1 overflow-x-auto pb-1 md:pb-0">
@@ -50,7 +58,7 @@ export function AppSidebar({ name, role }: AppSidebarProps) {
           })}
         </nav>
       </div>
-      <div className="hidden md:block border-t border-neutral-800 px-2 pt-4">
+      <div className="hidden md:block border-t border-neutral-800 px-1 pt-4">
         <NameLabel name={name} role={role} tone="onDark" />
       </div>
     </aside>

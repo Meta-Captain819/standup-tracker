@@ -5,6 +5,7 @@ import { NotificationType, Role } from "../generated/prisma/client";
 import { isSupportedTimezone } from "../shared/ianaZones";
 import { currentLocalDate } from "../standups/localDate";
 import { listRoster, type RosterMember } from "../teams/teams.service";
+import { distinctLocalDates, standupKey } from "./notifications.localDay";
 import { buildBlockerAlertMessage } from "./notifications.messages";
 import { notify } from "./notifications.service";
 
@@ -107,19 +108,28 @@ export async function runBlockerAlertsTick(teamId: string): Promise<void> {
     return;
   }
 
-  const db = forTeam(teamId);
-  for (const member of roster) {
+  const candidates = roster.flatMap((member) => {
     if (member.timezone === null || !isSupportedTimezone(member.timezone)) {
-      continue;
+      return [];
     }
-    const localDate = currentLocalDate(member.timezone);
-    const standup = await db.standup.findFirst({
-      where: { userId: member.id, localStandupDate: localDate },
-      select: { id: true, userId: true, blockers: true, localStandupDate: true },
-    });
-    if (!standup) {
-      continue;
+    return [{ member, localDate: currentLocalDate(member.timezone) }];
+  });
+  if (candidates.length === 0) {
+    return;
+  }
+
+  // Every candidate's current-local-day standup in one indexed read, matched in memory — not a query
+  // per member. `alertLeadsForBlocker` still filters out the no-blocker rows this passes it.
+  const rows = await forTeam(teamId).standup.findMany({
+    where: { localStandupDate: { in: distinctLocalDates(candidates.map((c) => c.localDate)) } },
+    select: { id: true, userId: true, blockers: true, localStandupDate: true },
+  });
+  const byKey = new Map(rows.map((row) => [standupKey(row.userId, row.localStandupDate), row]));
+
+  for (const { member, localDate } of candidates) {
+    const standup = byKey.get(standupKey(member.id, localDate));
+    if (standup) {
+      await alertLeadsForBlocker(teamId, standup, roster);
     }
-    await alertLeadsForBlocker(teamId, standup, roster);
   }
 }

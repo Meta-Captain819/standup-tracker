@@ -17,6 +17,7 @@ export const sessionResultSchema = z.object({
   refreshToken: z.string(),
   user: publicUserSchema,
 });
+export type SessionResult = z.infer<typeof sessionResultSchema>;
 
 export const meResponseSchema = z.object({
   userId: z.string(),

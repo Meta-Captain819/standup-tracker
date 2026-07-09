@@ -2,10 +2,13 @@ import { Badge } from "@/app/_components/Badge";
 import { Card } from "@/app/_components/Card";
 import { LocalDayTimeLabel } from "@/app/_components/LocalDayTimeLabel";
 import { NameLabel } from "@/app/_components/NameLabel";
+import { cn } from "@/app/_lib/cn";
 import type { BoardStandup, Standup } from "@/app/_lib/validation/responses";
 import type { Role } from "@/app/_lib/types/role";
 
 export function StandupText({ update }: { update: Standup | BoardStandup }) {
+  const hasBlocker = update.blockers.trim() !== "";
+
   return (
     <div className="grid gap-3 text-sm text-neutral-700">
       <section>
@@ -16,11 +19,9 @@ export function StandupText({ update }: { update: Standup | BoardStandup }) {
         <h3 className="font-medium text-neutral-900">Today</h3>
         <p className="mt-1 whitespace-pre-wrap">{update.today || "No update."}</p>
       </section>
-      <section className={update.blockers.trim() ? "rounded-lg bg-blocker-accent-bg p-3" : undefined}>
-        <h3 className={update.blockers.trim() ? "font-medium text-blocker-700" : "font-medium text-neutral-900"}>
-          Blockers
-        </h3>
-        <p className={update.blockers.trim() ? "mt-1 whitespace-pre-wrap text-blocker-700" : "mt-1 whitespace-pre-wrap"}>
+      <section className={cn(hasBlocker && "rounded-lg bg-blocker-accent-bg p-3")}>
+        <h3 className={cn("font-medium", hasBlocker ? "text-blocker-700" : "text-neutral-900")}>Blockers</h3>
+        <p className={cn("mt-1 whitespace-pre-wrap", hasBlocker && "text-blocker-700")}>
           {update.blockers || "No blockers."}
         </p>
       </section>

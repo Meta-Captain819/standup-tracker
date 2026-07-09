@@ -5,7 +5,7 @@ import { cn } from "@/app/_lib/cn";
 
 export interface TextFieldProps
   extends Omit<InputHTMLAttributes<HTMLInputElement>, "size" | "type"> {
-  type?: "text" | "email" | "password";
+  type?: "text" | "email" | "password" | "date";
   invalid?: boolean;
 }
 
